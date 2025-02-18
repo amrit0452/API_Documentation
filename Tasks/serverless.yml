@@ -1,0 +1,144 @@
+org: amrit44
+service: Tasks
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  region: us-east-1
+  environment:
+    ORDERS_TABLE: orders
+    USERS_TABLE: NewUsers
+    CART_TABLE: Cart
+    PRODUCTS_TABLE: Products
+  iamRoleStatements:
+  - Effect: Allow
+    Action:
+      - 'dynamodb:GetItem'
+      - 'dynamodb:Scan*'
+      - 'dynamodb:UpdateItem'
+      - 'dynamodb:DeleteItem'
+      - 'dynamodb:PutItem'
+      - 'dynamodb:Query'
+    Resource:
+      - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${self:provider.environment.USERS_TABLE}"
+      - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${self:provider.environment.ORDERS_TABLE}"
+      - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${self:provider.environment.CART_TABLE}"
+      - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${self:provider.environment.PRODUCTS_TABLE}"
+      # - arn:aws:dynamodb:us-east-1:442042546992:table/Products
+      # - arn:aws:dynamodb:us-east-1:442042546992:table/NewUsers
+      # - arn:aws:dynamodb:us-east-1:442042546992:table/Cart
+
+functions:
+  addToCartFunction:
+    handler: addToCart.addToCartFunction
+    events:
+      - httpApi:
+          path: /api/cart
+          method: post
+
+  register:
+    handler: handler.register
+    events:
+      - httpApi: 
+          path: /api/register
+          method: post
+
+
+  search:
+    handler: searchProduct.search
+    events:
+      - httpApi:
+          path: /api/product
+          method: get
+
+  getProfile:
+    handler: get_userProfile_handler.getProfile
+    events:
+      - httpApi:
+          path: /api/profile
+          method: get
+
+  update:
+    handler: update_handler.update
+    events:
+      - httpApi:
+          path: /api/update
+          method: put
+
+  remove_from_cart:
+    handler: delete_handler.remove_from_cart
+    events:
+      - httpApi:
+          path: /api/delete
+          method: delete
+
+  history:
+    handler: orderHistory_handler.history
+    events:
+      - httpApi:
+          path: /api/orders
+          method: get
+
+
+# arn:aws:dynamodb:us-east-1:442042546992:table/NewUsers
+
+
+# CREATE TABLE ==> TABLE DEFINITION
+resources:
+  Resources:
+    CartTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: Cart
+        AttributeDefinitions:
+          - AttributeName: userID
+            AttributeType: S
+          - AttributeName: productID
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userID
+            KeyType: HASH
+          - AttributeName: productID
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+      DeletionPolicy: Retain
+
+
+    UserTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: NewUsers
+        AttributeDefinitions:
+          - AttributeName: email
+            AttributeType: S
+        KeySchema:
+          - AttributeName: email
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+      DeletionPolicy: Retain
+
+    ProductTable:
+      Type : AWS::DynamoDB::Table
+      Properties:
+        TableName: Products
+        AttributeDefinitions:
+        - AttributeName: productID
+          AttributeType: S
+        # - AttributeName: category
+        #   AttributeType: S
+        # - AttributeName: subcategory
+        #   AttributeType: S
+        # - AttributeName: price
+        #   AttributeType: S
+        KeySchema:
+          - AttributeName: productID
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+      DeletionPolicy: Retain
+          
+
+
+
+#serverless offline start
+plugins:
+  - serverless-offline  
